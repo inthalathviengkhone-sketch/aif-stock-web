@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>AIF Stock FinPass | ລະບົບຄວມຄຸມຈັດການສິນຄ້າ ເຂົ້າ-ອອກ ສາງ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'sans': ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' },
+                        secondary: { 50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc', 400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf', 800: '#86198f', 900: '#701a75' }
+                    },
+                    animation: { 'fade-in': 'fadeIn 0.3s ease-in-out', 'slide-up': 'slideUp 0.2s ease-out', 'pulse-slow': 'pulse 2s infinite', 'spin-slow': 'spin 3s linear infinite' },
+                    keyframes: { fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } }, slideUp: { from: { transform: 'translateY(10px)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } } }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .toast-notify { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 14px 28px; border-radius: 50px; z-index: 1001; font-size: 14px; font-weight: 500; box-shadow: 0 20px 25px -12px rgba(0,0,0,0.25); animation: slideInRight 0.3s ease; backdrop-filter: blur(8px); }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+        .login-bg { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); position: relative; overflow: hidden; }
+        .login-bg::before { content: ''; position: absolute; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 50px 50px; animation: slowMove 20s linear infinite; }
+        @keyframes slowMove { from { transform: translate(0, 0); } to { transform: translate(-100px, -100px); } }
+        .btn-gradient { background: linear-gradient(135deg, #4f46e5, #7c3aed); transition: all 0.2s; position: relative; overflow: hidden; }
+        .btn-gradient::after { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-radius: 50%; background: rgba(255,255,255,0.2); transform: translate(-50%, -50%); transition: width 0.3s, height 0.3s; }
+        .btn-gradient:hover::after { width: 200%; height: 200%; }
+        .btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(79,70,229,0.4); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.2s ease; }
+        .modal-content { background: white; border-radius: 32px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; animation: slideUp 0.2s ease; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .warehouse-card { border: 2px solid transparent; transition: all 0.2s; cursor: pointer; background: white; border-radius: 16px; }
+        .warehouse-card.active { border-color: #4f46e5; background: linear-gradient(135deg, #f5f3ff, #ede9fe); box-shadow: 0 4px 12px rgba(79,70,229,0.15); }
+        .warehouse-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .stat-card { transition: all 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        table { border-collapse: separate; border-spacing: 0; }
+        th { position: sticky; top: 0; background: white; z-index: 10; }
+        .badge-low-stock { animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .aif-logo { background: linear-gradient(135deg, #4f46e5, #7c3aed, #ec4899); animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-white to-indigo-50/20 font-sans antialiased">
+
+    <div id="loginPage" class="login-bg min-h-screen flex items-center justify-center px-4">
+        <div class="w-full max-w-md animate-fade-in">
+            <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/20">
+                <div class="text-center mb-8">
+                    <div class="aif-logo w-24 h-24 rounded-2xl flex items-center justify-center mx-auto shadow-xl mb-5">
+                        <span class="text-white font-bold text-4xl tracking-tight">AIF</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-slate-800">AIF Stock FinPass</h1>
+                    <p class="text-slate-500 text-sm mt-1">Professional Warehouse Management System</p>
+                    <div class="mt-3 flex justify-center gap-2"><span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"><i class="fas fa-shield-alt mr-1"></i>Secure</span><span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full"><i class="fas fa-chart-line mr-1"></i>Real-time</span><span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full"><i class="fas fa-cloud-upload-alt mr-1"></i>Cloud Sync</span></div>
+                </div>
+                <form id="loginForm" class="space-y-5">
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1.5">ຊື່ຜູ້ໃຊ້ງານ</label><div class="relative"><i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i><input type="text" id="username" class="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-slate-50/50 transition" placeholder="ປ້ອນຊື່ຜູ້ໃຊ້ງານ" required></div></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1.5">ລະຫັດຜ່ານ</label><div class="relative"><i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i><input type="password" id="password" class="w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-slate-50/50 transition" placeholder="ປ້ອນລະຫັດຜ່ານ" required></div></div>
+                    <button type="submit" class="btn-gradient w-full text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-lg"><i class="fas fa-arrow-right-to-bracket"></i> ເຂົ້າສູ່ລະບົບ</button>
+                </form>
+                <div class="mt-6 text-center text-sm text-slate-500 border-t pt-5"><p class="mb-2 text-slate-400">ບັນຊີທົດລອງ</p><div class="flex justify-center gap-2 text-xs flex-wrap"><span class="bg-amber-50 px-3 py-1.5 rounded-full"><i class="fas fa-crown text-amber-500 mr-1"></i><span class="font-semibold">admin / admin123</span></span></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" style="display: none;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-primary-600 via-secondary-500 to-pink-500 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"><span class="text-white font-bold text-xl">AIF</span></div>
+                    <div><h1 class="text-2xl font-bold text-slate-800">AIF Stock FinPass</h1><p class="text-slate-500 text-sm">ລະບົບຈັດການຄັງສິນຄ້າ</p></div>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <div class="flex items-center gap-2 bg-white/90 backdrop-blur rounded-full px-4 py-2 shadow-sm border border-slate-100"><i class="fas fa-cloud text-primary-500"></i><span id="realtimeStatus" class="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700"><i class="fas fa-circle text-[8px] mr-1 text-emerald-500"></i> Offline</span></div>
+                    <div class="flex items-center gap-2 bg-white/90 backdrop-blur rounded-full px-4 py-2 shadow-sm border border-slate-100"><i class="fas fa-user-circle text-primary-500 text-lg"></i><span id="currentUserDisplay" class="text-sm font-medium text-slate-700"></span></div>
+                    <button id="userManagementBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition flex items-center gap-2"><i class="fas fa-users"></i> ຜູ້ໃຊ້</button>
+                    <button id="warehouseManagementBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition flex items-center gap-2"><i class="fas fa-warehouse"></i> ສາງ</button>
+                    <button id="exportAllBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition flex items-center gap-2"><i class="fas fa-file-export"></i> ສົ່ງອອກ</button>
+                    <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition flex items-center gap-2"><i class="fas fa-sign-out-alt"></i> ອອກ</button>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-3"><div class="flex items-center gap-2"><i class="fas fa-store text-primary-500"></i><span class="text-sm font-semibold text-slate-600">ເລືອກສາງທີ່ຕ້ອງການຈັດການ</span><span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full" id="warehouseCount">0 ສາງ</span></div><button id="quickAddWarehouseBtn" class="bg-primary-50 text-primary-600 hover:bg-primary-100 px-3 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-1"><i class="fas fa-plus"></i> ເພີ່ມສາງ</button></div>
+                <div id="warehouseList" class="flex flex-wrap gap-3"></div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="stat-card bg-white rounded-2xl shadow-sm p-5 border-l-4 border-primary-500"><div class="flex justify-between items-start"><div><p class="text-slate-400 text-xs uppercase tracking-wider font-semibold">ສິນຄ້າທັງໝົດ</p><p class="text-2xl font-bold text-slate-800 mt-1" id="totalProducts">0</p></div><div class="bg-primary-50 w-10 h-10 rounded-xl flex items-center justify-center"><i class="fas fa-cubes text-primary-500 text-lg"></i></div></div></div>
+                <div class="stat-card bg-white rounded-2xl shadow-sm p-5 border-l-4 border-emerald-500"><div class="flex justify-between items-start"><div><p class="text-slate-400 text-xs uppercase tracking-wider font-semibold">ຍອດເຂົ້າ</p><p class="text-2xl font-bold text-slate-800 mt-1" id="totalIn">0</p></div><div class="bg-emerald-50 w-10 h-10 rounded-xl flex items-center justify-center"><i class="fas fa-arrow-down text-emerald-500 text-lg"></i></div></div></div>
+                <div class="stat-card bg-white rounded-2xl shadow-sm p-5 border-l-4 border-rose-500"><div class="flex justify-between items-start"><div><p class="text-slate-400 text-xs uppercase tracking-wider font-semibold">ຍອດອອກ</p><p class="text-2xl font-bold text-slate-800 mt-1" id="totalOut">0</p></div><div class="bg-rose-50 w-10 h-10 rounded-xl flex items-center justify-center"><i class="fas fa-arrow-up text-rose-500 text-lg"></i></div></div></div>
+                <div class="stat-card bg-white rounded-2xl shadow-sm p-5 border-l-4 border-amber-500"><div class="flex justify-between items-start"><div><p class="text-slate-400 text-xs uppercase tracking-wider font-semibold">ມູນຄ່າຄົງເຫຼືອ</p><p class="text-2xl font-bold text-slate-800 mt-1" id="totalValue">0</p></div><div class="bg-amber-50 w-10 h-10 rounded-xl flex items-center justify-center"><i class="fas fa-coins text-amber-500 text-lg"></i></div></div></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-5" id="addProductPanel">
+                        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100"><div class="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center"><i class="fas fa-plus-circle text-primary-500"></i></div><h2 class="font-semibold text-slate-800">ເພີ່ມ/ແກ້ໄຂສິນຄ້າ</h2></div>
+                        <div class="space-y-4">
+                            <div><label class="text-xs font-medium text-slate-500 mb-1 block">ລະຫັດສິນຄ້າ <span class="text-red-400">*</span></label><input type="text" id="productId" placeholder="ເຊັ່ນ: FB001" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 transition"></div>
+                            <div><label class="text-xs font-medium text-slate-500 mb-1 block">ຊື່ສິນຄ້າ <span class="text-red-400">*</span></label><input type="text" id="productName" placeholder="ຊື່ສິນຄ້າ" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 transition"></div>
+                            <div><label class="text-xs font-medium text-slate-500 mb-1 block">ຫົວໜ່ວຍ</label><select id="productUnit" class="w-full border border-slate-200 rounded-xl p-3 text-sm bg-white"><option value="ກໍ້">ກໍ້ (Roll)</option><option value="ເຄື່ອງ">ເຄື່ອງ (Machine)</option><option value="ອັນ">ອັນ (Piece)</option><option value="ກ່ອງ">ກ່ອງ (Box)</option><option value="ແກັດ">ແກັດ (Pack)</option></select></div>
+                            <div><label class="text-xs font-medium text-slate-500 mb-1 block">ລາຄາ (ກີບ)</label><input type="number" id="productPrice" placeholder="ລາຄາຕໍ່ໜ່ວຍ" class="w-full border border-slate-200 rounded-xl p-3 text-sm" value="0"></div>
+                            <div class="flex gap-2"><button id="addProductBtn" class="btn-gradient flex-1 text-white py-2.5 rounded-xl text-sm font-medium"><i class="fas fa-save mr-1"></i> ບັນທຶກ</button><button id="resetProductBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 rounded-xl text-sm transition"><i class="fas fa-undo-alt"></i></button></div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm p-5" id="transactionPanel">
+                        <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100"><div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><i class="fas fa-exchange-alt text-green-500"></i></div><h2 class="font-semibold text-slate-800">ບັນທຶກເຂົ້າ/ອອກ</h2></div>
+                        <div class="space-y-4">
+                            <div><label class="text-xs font-medium text-slate-500 mb-1 block">ເລືອກສິນຄ້າ</label><select id="transProductSelect" class="w-full border border-slate-200 rounded-xl p-3 text-sm bg-white"><option value="">-- ເລືອກສິນຄ້າ --</option></select></div>
+                            <div><label class="text-xs font-medium text-slate-500 mb-2 block">ປະເພດ</label><div class="flex gap-3"><label class="flex-1 flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl py-2.5 cursor-pointer transition hover:bg-emerald-100"><input type="radio" name="transType" value="in" checked class="w-4 h-4 text-emerald-600"> <i class="fas fa-download text-emerald-600"></i> ເຂົ້າ</label><label class="flex-1 flex items-center justify-center gap-2 bg-rose-50 border border-rose-200 rounded-xl py-2.5 cursor-pointer transition hover:bg-rose-100"><input type="radio" name="transType" value="out" class="w-4 h-4 text-rose-600"> <i class="fas fa-upload text-rose-600"></i> ອອກ</label></div></div>
+                            <div><label class="text-xs font-medium text-slate-500 mb-1 block">ຈຳນວນ</label><input type="number" id="transQty" class="w-full border border-slate-200 rounded-xl p-3 text-sm" value="1" min="1"></div>
+                            <div><label class="text-xs font-medium text-slate-500 mb-1 block">ໝາຍເຫດ (ທາງເລືອກ)</label><input type="text" id="transNote" placeholder="ເພີ່ມເຕີມ..." class="w-full border border-slate-200 rounded-xl p-3 text-sm"></div>
+                            <button id="doTransBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-medium shadow-sm transition"><i class="fas fa-check-circle mr-1"></i> ບັນທຶກທຸລະກຳ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm p-5">
+                    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                        <div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center"><i class="fas fa-list-ul text-primary-500"></i></div><h2 class="font-semibold text-slate-800">ລາຍການສິນຄ້າ</h2></div>
+                        <div class="relative"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i><input type="text" id="searchProduct" class="pl-9 pr-4 py-2 border border-slate-200 rounded-xl w-64 text-sm focus:ring-2 focus:ring-primary-500 transition" placeholder="ຄົ້ນຫາສິນຄ້າ..."></div>
+                    </div>
+                    <div class="overflow-x-auto custom-scroll">
+                        <table class="min-w-full">
+                            <thead><tr class="border-b border-slate-100 bg-slate-50/50"><th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ລະຫັດ</th><th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ຊື່ສິນຄ້າ</th><th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">ໜ່ວຍ</th><th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">ລາຄາ</th><th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">ຄົງເຫຼືອ</th><th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">ມູນຄ່າ</th><th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider"></th></tr></thead>
+                            <tbody id="productTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm p-5">
+                    <div class="flex flex-wrap justify-between items-center gap-3 mb-4"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><i class="fas fa-history text-purple-500"></i></div><h2 class="font-semibold text-slate-800">ປະຫວັດການເຄື່ອນໄຫວ</h2></div><div class="flex gap-2"><input type="text" id="filterStart" placeholder="ວັນທີ່ເລີ່ມ" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-32"><input type="text" id="filterEnd" placeholder="ວັນທີ່ສິ້ນສຸດ" class="border border-slate-200 rounded-xl px-3 py-2 text-sm w-32"><button id="applyFilter" class="bg-primary-100 text-primary-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-200 transition"><i class="fas fa-filter"></i> ກັ່ນຕອງ</button><button id="resetFilter" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-200 transition"><i class="fas fa-undo-alt"></i> ຣີເຊັດ</button><button id="clearAllBtn" class="bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-rose-200 transition"><i class="fas fa-trash-alt"></i> ລຶບຂໍ້ມູນ</button></div></div>
+                    <div class="overflow-x-auto custom-scroll"><table class="min-w-full text-sm"><thead><tr class="border-b border-slate-100 bg-slate-50/50"><th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">ວັນ-ເວລາ</th><th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">ລະຫັດ</th><th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">ສິນຄ້າ</th><th class="px-4 py-3 text-center text-xs font-semibold text-slate-500">ປະເພດ</th><th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">ຈຳນວນ</th><th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">ໝາຍເຫດ</th></tr></thead><tbody id="historyTableBody"></tbody></table></div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center gap-2 mb-4"><div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><i class="fas fa-chart-pie text-indigo-500"></i></div><h2 class="font-semibold text-slate-800">ສະຖິຕິສິນຄ້າ</h2></div>
+                    <canvas id="stockChart" width="300" height="250" style="max-height: 250px; width: 100%;"></canvas>
+                    <div class="mt-4 pt-3 border-t border-slate-100"><div class="flex justify-between text-sm"><span class="text-slate-500">ສິນຄ້າທີ່ມີຢູ່:</span><span class="font-semibold text-emerald-600" id="stockPositiveCount">0</span></div><div class="flex justify-between text-sm mt-2"><span class="text-slate-500">ສິນຄ້າທີ່ໝົດ:</span><span class="font-semibold text-amber-600" id="stockZeroCount">0</span></div><div class="flex justify-between text-sm mt-2"><span class="text-slate-500">ສິນຄ້າຕິດລົບ:</span><span class="font-semibold text-rose-600" id="stockNegativeCount">0</span></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="warehouseModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content p-6 custom-scroll">
+            <div class="flex justify-between items-center mb-5"><h2 class="text-xl font-bold text-slate-800"><i class="fas fa-warehouse text-teal-500 mr-2"></i>ຈັດການສາງ</h2><button id="closeWarehouseModalBtn" class="text-slate-400 hover:text-slate-600 text-2xl transition">&times;</button></div>
+            <div class="bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl p-5 mb-6"><h3 class="font-semibold text-slate-700 mb-3 text-sm"><i class="fas fa-plus-circle text-green-500 mr-1"></i> ເພີ່ມສາງໃໝ່</h3><div class="flex gap-3"><input type="text" id="newWarehouseName" placeholder="ຊື່ສາງ" class="flex-1 border border-slate-200 rounded-xl p-3 text-sm"><input type="text" id="newWarehouseLocation" placeholder="ສະຖານທີ່" class="flex-1 border border-slate-200 rounded-xl p-3 text-sm"><button id="addWarehouseBtn" class="btn-gradient text-white px-5 py-3 rounded-xl text-sm font-medium"><i class="fas fa-plus"></i> ເພີ່ມ</button></div></div>
+            <h3 class="font-semibold text-slate-700 mb-3 text-sm"><i class="fas fa-list-ul mr-1"></i> ລາຍການສາງທັງໝົດ</h3><div id="warehouseManageList" class="space-y-2 max-h-80 overflow-y-auto custom-scroll"></div><div class="mt-4 pt-3 border-t text-xs text-slate-400 text-center"><i class="fas fa-info-circle mr-1"></i>ສາງຫຼັກບໍ່ສາມາດລຶບໄດ້</div>
+        </div>
+    </div>
+
+    <div id="userModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content p-6 custom-scroll">
+            <div class="flex justify-between items-center mb-5"><h2 class="text-xl font-bold text-slate-800"><i class="fas fa-users text-purple-500 mr-2"></i>ຈັດການຜູ້ໃຊ້ງານ</h2><button id="closeModalBtn" class="text-slate-400 hover:text-slate-600 text-2xl transition">&times;</button></div>
+            <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-5 mb-6"><h3 class="font-semibold text-slate-700 mb-3 text-sm"><i class="fas fa-user-plus text-green-500 mr-1"></i> ເພີ່ມ/ແກ້ໄຂຜູ້ໃຊ້ງານ</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><input type="text" id="newUsername" placeholder="ຊື່ຜູ້ໃຊ້" class="border border-slate-200 rounded-xl p-3 text-sm"><input type="text" id="newFullname" placeholder="ຊື່-ນາມສະກຸນ" class="border border-slate-200 rounded-xl p-3 text-sm"><input type="password" id="newPassword" placeholder="ລະຫັດຜ່ານ" class="border border-slate-200 rounded-xl p-3 text-sm"><select id="newRole" class="border border-slate-200 rounded-xl p-3 text-sm"><option value="admin">👑 Admin (ສິດເຕັມ)</option><option value="manager">📋 Manager (ຈັດການສິນຄ້າ)</option><option value="viewer">👁️ Viewer (ເບິ່ງຢ່າງດຽວ)</option></select></div><div class="flex gap-2 mt-4"><button id="saveUserBtn" class="btn-gradient flex-1 text-white py-2.5 rounded-xl text-sm font-medium">ບັນທຶກ</button><button id="cancelUserBtn" class="bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm">ຍົກເລີກ</button></div></div>
+            <h3 class="font-semibold text-slate-700 mb-3 text-sm">ລາຍການຜູ້ໃຊ້ງານ</h3><div class="overflow-x-auto max-h-80"><table class="min-w-full text-sm"><thead class="bg-slate-50 sticky top-0"><tr class="border-b"><th class="px-3 py-2 text-left">ຊື່ຜູ້ໃຊ້</th><th class="px-3 py-2 text-left">ຊື່-ນາມສະກຸນ</th><th class="px-3 py-2 text-center">ບົດບາດ</th><th class="px-3 py-2 text-center"></th></tr></thead><tbody id="userTableBody"></tbody></table></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== ຕັ້ງຄ່າການເຊື່ອມຕໍ່ Google Sheets ====================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzDmXpy0Uv7GvjWa4klfB9TijApt7JtoXio5Tzwk4ingDw6JVHQsf5gQVvooDk9N4kNzA/exec';
+
+        // ==================== Data Models ====================
+        let warehouses = [
+            { id: 'warehouse_1', name: 'ຂົວມິດຕະພາບ', location: 'ນະຄອນຫຼວງວຽງຈັນ', isMain: true, createdAt: new Date().toISOString() },
+            { id: 'warehouse_2', name: 'ສາງ AIF', location: 'ນະຄອນຫຼວງວຽງຈັນ', isMain: true, createdAt: new Date().toISOString() }
+        ];
+        let currentWarehouseId = 'warehouse_1';
+        let products = [];
+        let transactions = [];
+        let nextTransId = 1;
+        let stockChart = null;
+        let autoBackupInterval = null;
+        
+        const defaultProductsTemplate = [{ id: 'SAMPLE001', name: 'ສິນຄ້າຕົວຢ່າງ', unit: 'ອັນ', price: 0, stock: 0, minStock: 10 }];
+        const defaultProductsMap = {
+            warehouse_1: [
+                { id: 'FB001', name: 'ປິ່ນເຕີ້', unit: 'ເຄື່ອງ', price: 0, stock: 10, minStock: 5 },
+                { id: 'FB003', name: 'ກໍ້ເຈ້ຍບີນ', unit: 'ກໍ້', price: 0, stock: 40, minStock: 20 },
+                { id: 'FB004', name: 'ກໍ້ເຈ້ຍ QR CODE', unit: 'ກໍ້', price: 0, stock: 41, minStock: 15 },
+                { id: 'FB006', name: 'ເຈ້ຍ POS', unit: 'ກໍ້', price: 0, stock: 110, minStock: 30 }
+            ],
+            warehouse_2: [
+                { id: 'FB003', name: 'ກໍ້ເຈ້ຍບີນ', unit: 'ກໍ້', price: 0, stock: 980, minStock: 100 },
+                { id: 'FB004', name: 'ກໍ້ເຈ້ຍ QR CODE', unit: 'ກໍ້', price: 0, stock: 100, minStock: 20 }
+            ]
+        };
+        
+        // User System
+        let users = [
+            { username: 'admin', password: 'admin123', role: 'admin', fullname: 'ຜູ້ຈັດການສູງສຸດ', createdAt: new Date().toISOString() },
+            { username: 'manager', password: 'manager123', role: 'manager', fullname: 'ຜູ້ຈັດການສາງ', createdAt: new Date().toISOString() },
+            { username: 'viewer', password: 'viewer123', role: 'viewer', fullname: 'ຜູ້ເບິ່ງຂໍ້ມູນ', createdAt: new Date().toISOString() }
+        ];
+        let currentUser = null;
+        let editingUsername = null;
+        
+        const rolePermissions = {
+            admin: { canEdit: true, canDelete: true, canViewReport: true, canManageWarehouse: true, canManageUsers: true },
+            manager: { canEdit: true, canDelete: false, canViewReport: true, canManageWarehouse: false, canManageUsers: false },
+            viewer: { canEdit: false, canDelete: false, canViewReport: true, canManageWarehouse: false, canManageUsers: false }
+        };
+        
+        function getUserPermission(role) { return rolePermissions[role] || rolePermissions.viewer; }
+
+        // ==================== Cloud Sync Setup ====================
+        async function syncToCloud(sheetName, dataToSync) {
+            if (!SCRIPT_URL.startsWith('http')) return;
+            const statusEl = document.getElementById('realtimeStatus');
+            if (statusEl) statusEl.innerHTML = '<i class="fas fa-sync fa-spin mr-1 text-primary-500"></i> ກຳລັງຊິ້ງ...';
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ sheetName: sheetName, data: dataToSync }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                if (statusEl) statusEl.innerHTML = '<i class="fas fa-cloud-check text-[10px] mr-1 text-emerald-500"></i> ຊິ້ງແລ້ວ';
+            } catch (error) {
+                console.error('Cloud Sync Error:', error);
+                if (statusEl) statusEl.innerHTML = '<i class="fas fa-exclamation-triangle text-[10px] mr-1 text-rose-500"></i> ອອຟລາຍ';
+            }
+        }
+
+        // ==================== Save/Load Functions ====================
+        function saveWarehouses() { 
+            localStorage.setItem('aif_warehouses', JSON.stringify(warehouses));
+            syncToCloud('Warehouses', warehouses);
+        }
+        
+        function saveProducts() { 
+            localStorage.setItem(`aif_${currentWarehouseId}_products`, JSON.stringify(products));
+            syncToCloud(`Products_${currentWarehouseId}`, products);
+        }
+        
+        function saveTransactions() { 
+            localStorage.setItem('aif_transactions', JSON.stringify(transactions));
+            syncToCloud('Transactions', transactions);
+        }
+        
+        function saveUsers() { 
+            localStorage.setItem('aif_users', JSON.stringify(users));
+            syncToCloud('Users', users);
+        }
+
+        async function loadDataFromCloud() {
+            if (!SCRIPT_URL.startsWith('http')) { loadData(); return; }
+            try {
+                showToast('ກຳລັງດຶງຂໍ້ມູນຫຼ້າສຸດຈາກ Cloud...', false);
+                const response = await fetch(SCRIPT_URL);
+                const cloudData = await response.json();
+                
+                if (cloudData.Warehouses && cloudData.Warehouses.length > 0) {
+                    warehouses = cloudData.Warehouses;
+                    localStorage.setItem('aif_warehouses', JSON.stringify(warehouses));
+                }
+                if (cloudData.Transactions && cloudData.Transactions.length > 0) {
+                    transactions = cloudData.Transactions;
+                    localStorage.setItem('aif_transactions', JSON.stringify(transactions));
+                }
+                if (cloudData.Users && cloudData.Users.length > 0) {
+                    users = cloudData.Users;
+                    localStorage.setItem('aif_users', JSON.stringify(users));
+                }
+                
+                const productSheetName = `Products_${currentWarehouseId}`;
+                if (cloudData[productSheetName] && cloudData[productSheetName].length > 0) {
+                    products = cloudData[productSheetName];
+                    localStorage.setItem(`aif_${currentWarehouseId}_products`, JSON.stringify(products));
+                } else {
+                    products = defaultProductsMap[currentWarehouseId] ? JSON.parse(JSON.stringify(defaultProductsMap[currentWarehouseId])) : JSON.parse(JSON.stringify(defaultProductsTemplate));
+                }
+                
+                if (transactions.length) nextTransId = Math.max(...transactions.map(t=>t.id)) + 1;
+                renderAll(); updateChart(); renderWarehouseSelector(); renderWarehouseManageList();
+                showToast('ຊິ້ງຂໍ້ມູນສຳເລັດແລ້ວ');
+            } catch (error) {
+                console.error('Failed to load from cloud:', error);
+                showToast('ບໍ່ສາມາດເຊື່ອມຕໍ່ Cloud ໄດ້, ກຳລັງໃຊ້ຂໍ້ມູນໃນເຄື່ອງ', true);
+                loadData(); 
+            }
+        }
+
+        function loadWarehouses() { 
+            const saved = localStorage.getItem('aif_warehouses'); 
+            if (saved) warehouses = JSON.parse(saved); else saveWarehouses(); 
+        }
+        
+        function loadUsers() { 
+            const saved = localStorage.getItem('aif_users'); 
+            if (saved) users = JSON.parse(saved); else saveUsers(); 
+        }
+        
+        function loadData() {
+            const savedProducts = localStorage.getItem(`aif_${currentWarehouseId}_products`);
+            const savedTrans = localStorage.getItem('aif_transactions');
+            if (savedProducts) products = JSON.parse(savedProducts);
+            else products = defaultProductsMap[currentWarehouseId] ? JSON.parse(JSON.stringify(defaultProductsMap[currentWarehouseId])) : JSON.parse(JSON.stringify(defaultProductsTemplate));
+            
+            if (savedTrans) { transactions = JSON.parse(savedTrans); if (transactions.length) nextTransId = Math.max(...transactions.map(t=>t.id)) + 1; }
+            else transactions = [];
+            renderAll(); updateChart();
+        }
+
+        function startAutoBackup() { 
+            if (autoBackupInterval) clearInterval(autoBackupInterval); 
+            autoBackupInterval = setInterval(loadDataFromCloud, 300000); // ຊິ້ງຂໍ້ມູນທຸກ 5 ນາທີ
+        }
+        
+        // ==================== Warehouse Functions ====================
+        function addWarehouse() {
+            const name = document.getElementById('newWarehouseName').value.trim();
+            const location = document.getElementById('newWarehouseLocation').value.trim();
+            if (!name) { showToast('ກະລຸນາປ້ອນຊື່ສາງ', true); return; }
+            const newId = 'warehouse_' + Date.now();
+            warehouses.push({ id: newId, name, location: location || 'ບໍ່ມີຂໍ້ມູນ', isMain: false, createdAt: new Date().toISOString() });
+            saveWarehouses();
+            localStorage.setItem(`aif_${newId}_products`, JSON.stringify(defaultProductsTemplate));
+            renderWarehouseSelector();
+            renderWarehouseManageList();
+            document.getElementById('newWarehouseName').value = '';
+            document.getElementById('newWarehouseLocation').value = '';
+            showToast(`ເພີ່ມສາງ "${name}" ສຳເລັດ`);
+        }
+        
+        function deleteWarehouse(id) {
+            const warehouse = warehouses.find(w => w.id === id);
+            if (!warehouse) return;
+            if (warehouse.isMain) { showToast('ບໍ່ສາມາດລຶບສາງຫຼັກໄດ້', true); return; }
+            if (confirm(`ທ່ານຕ້ອງການລຶບສາງ "${warehouse.name}" ຖາວອນບໍ?`)) {
+                warehouses = warehouses.filter(w => w.id !== id);
+                localStorage.removeItem(`aif_${id}_products`);
+                const allTrans = localStorage.getItem('aif_transactions');
+                if (allTrans) { let trans = JSON.parse(allTrans); trans = trans.filter(t => t.warehouseId !== id); transactions = trans; saveTransactions(); }
+                saveWarehouses();
+                if (currentWarehouseId === id) currentWarehouseId = warehouses[0].id;
+                renderWarehouseSelector();
+                renderWarehouseManageList();
+                loadDataFromCloud();
+                showToast(`ລຶບສາງ "${warehouse.name}" ສຳເລັດ`);
+            }
+        }
+        
+        function renderWarehouseSelector() {
+            const container = document.getElementById('warehouseList');
+            if (!container) return;
+            document.getElementById('warehouseCount').innerText = warehouses.length + ' ສາງ';
+            container.innerHTML = warehouses.map(w => `
+                <div onclick="selectWarehouse('${w.id}')" class="warehouse-card ${currentWarehouseId === w.id ? 'active' : ''} p-3 min-w-[180px] cursor-pointer">
+                    <div class="flex items-center gap-2">
+                        <div class="w-10 h-10 rounded-lg ${currentWarehouseId === w.id ? 'bg-primary-100' : 'bg-slate-100'} flex items-center justify-center">
+                            <i class="fas fa-store ${currentWarehouseId === w.id ? 'text-primary-600' : 'text-slate-500'} text-lg"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-sm text-slate-800">${escapeHtml(w.name)}</p>
+                            <p class="text-xs text-slate-400">${escapeHtml(w.location || 'ສາງ')}</p>
+                        </div>
+                        ${!w.isMain ? `<button onclick="event.stopPropagation(); deleteWarehouse('${w.id}')" class="text-rose-400 hover:text-rose-600 transition" title="ລຶບສາງ"><i class="fas fa-trash-alt text-xs"></i></button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderWarehouseManageList() {
+            const container = document.getElementById('warehouseManageList');
+            if (!container) return;
+            container.innerHTML = warehouses.map(w => `
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                    <div><div class="font-medium text-slate-800 flex items-center gap-2">${escapeHtml(w.name)}${w.isMain ? '<span class="text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full">ສາງຫຼັກ</span>' : ''}</div><div class="text-xs text-slate-400 mt-1"><i class="fas fa-map-marker-alt mr-1"></i>${escapeHtml(w.location || 'ບໍ່ມີຂໍ້ມູນ')}</div><div class="text-xs text-slate-400"><i class="fas fa-calendar-alt mr-1"></i>${new Date(w.createdAt).toLocaleDateString('lo-LA')}</div></div>
+                    ${!w.isMain ? `<button onclick="deleteWarehouse('${w.id}')" class="text-rose-500 hover:text-rose-700 transition px-3 py-2 rounded-xl hover:bg-rose-50"><i class="fas fa-trash-alt"></i> ລຶບ</button>` : '<span class="text-slate-300 text-xs px-3 py-2">ບໍ່ສາມາດລຶບໄດ້</span>'}
+                </div>
+            `).join('');
+        }
+        
+        window.selectWarehouse = function(id) { currentWarehouseId = id; renderWarehouseSelector(); loadDataFromCloud(); };
+        
+        // ==================== Render Functions ====================
+        function renderAll() { renderProductTable(); renderDashboard(); renderProductSelect(); renderTransactionHistory(); }
+        
+        function renderProductTable() {
+            const search = document.getElementById('searchProduct')?.value.toLowerCase() || '';
+            const filtered = products.filter(p => p.name.toLowerCase().includes(search) || p.id.toLowerCase().includes(search));
+            const tbody = document.getElementById('productTableBody');
+            const perm = getUserPermission(currentUser?.role);
+            const canEdit = perm.canEdit, canDelete = perm.canDelete;
+            if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">ບໍ່ພົບສິນຄ້າ<br><span class="text-xs">ສາມາດເພີ່ມສິນຄ້າໃໝ່ໄດ້ທາງຊ້າຍມື</span></td></tr>'; return; }
+            tbody.innerHTML = filtered.map(p => `<tr class="border-b border-slate-100 hover:bg-slate-50/50 transition"><td class="px-4 py-3 font-mono text-sm font-medium text-slate-700">${p.id}</td><td class="px-4 py-3">${escapeHtml(p.name)}</td><td class="px-4 py-3 text-center text-sm text-slate-500">${p.unit}</td><td class="px-4 py-3 text-right font-medium">${p.price.toLocaleString()} ກີບ</td><td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center min-w-[50px] px-2 py-1 rounded-full text-xs font-semibold ${p.stock <= p.minStock && p.stock > 0 ? 'badge-low-stock bg-amber-100 text-amber-600' : (p.stock === 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600')}">${p.stock}</span></td><td class="px-4 py-3 text-right">${(p.stock * p.price).toLocaleString()} ກີບ</td><td class="px-4 py-3 text-center">${canEdit ? `<button onclick="editProduct('${p.id}')" class="text-primary-500 hover:text-primary-700 mr-2 transition"><i class="fas fa-edit"></i></button>` : ''}${canDelete ? `<button onclick="deleteProduct('${p.id}')" class="text-rose-400 hover:text-rose-600 transition"><i class="fas fa-trash-alt"></i></button>` : ''}</td></tr>`).join('');
+        }
+        
+        function renderDashboard() {
+            const totalProd = products.length;
+            const warehouseTrans = transactions.filter(t => t.warehouseId === currentWarehouseId);
+            let totalIn = 0, totalOut = 0;
+            warehouseTrans.forEach(t => { if(t.type === 'in') totalIn += t.quantity; else totalOut += t.quantity; });
+            const totalStockValue = products.reduce((sum, p) => sum + (p.stock * p.price), 0);
+            document.getElementById('totalProducts').innerText = totalProd;
+            document.getElementById('totalIn').innerText = totalIn.toLocaleString();
+            document.getElementById('totalOut').innerText = totalOut.toLocaleString();
+            document.getElementById('totalValue').innerText = totalStockValue.toLocaleString() + " ກີບ";
+            document.getElementById('stockPositiveCount').innerText = products.filter(p => p.stock > 0).length;
+            document.getElementById('stockZeroCount').innerText = products.filter(p => p.stock === 0).length;
+            document.getElementById('stockNegativeCount').innerText = products.filter(p => p.stock < 0).length;
+        }
+        
+        function updateChart() {
+            const ctx = document.getElementById('stockChart')?.getContext('2d');
+            if (!ctx) return;
+            const positive = products.filter(p => p.stock > 0).length;
+            const zero = products.filter(p => p.stock === 0).length;
+            const negative = products.filter(p => p.stock < 0).length;
+            if(stockChart) stockChart.destroy();
+            stockChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['ມີສິນຄ້າ', 'ໝົດສິນຄ້າ', 'ຕິດລົບ'], datasets: [{ data: [positive, zero, negative], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } } });
+        }
+        
+        function renderProductSelect() { const select = document.getElementById('transProductSelect'); if(select) select.innerHTML = '<option value="">-- ເລືອກສິນຄ້າ --</option>' + products.map(p => `<option value="${p.id}">${p.id} - ${p.name} (ຄົງເຫຼືອ: ${p.stock})</option>`).join(''); }
+        
+        function renderTransactionHistory() {
+            let filtered = transactions.filter(t => t.warehouseId === currentWarehouseId);
+            const startVal = document.getElementById('filterStart')?.value, endVal = document.getElementById('filterEnd')?.value;
+            if(startVal) filtered = filtered.filter(t => t.timestamp >= new Date(startVal).getTime());
+            if(endVal) filtered = filtered.filter(t => t.timestamp <= new Date(endVal).getTime() + 86400000);
+            filtered.sort((a,b) => b.timestamp - a.timestamp);
+            const tbody = document.getElementById('historyTableBody');
+            if(!filtered.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">ບໍ່ມີຂໍ້ມູນ</td></tr>'; return; }
+            tbody.innerHTML = filtered.map(t => { const prod = products.find(p => p.id === t.productId); return `<tr class="border-b border-slate-100 hover:bg-slate-50/50 transition"><td class="px-4 py-3 text-slate-600 whitespace-nowrap">${new Date(t.timestamp).toLocaleString('lo-LA')}</td><td class="px-4 py-3 font-mono text-sm">${t.productId}</td><td class="px-4 py-3">${prod ? prod.name : t.productId}</td><td class="px-4 py-3 text-center">${t.type === 'in' ? '<span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-xs"><i class="fas fa-inbox text-xs"></i> ເຂົ້າ</span>' : '<span class="inline-flex items-center gap-1 bg-rose-100 text-rose-700 px-2 py-1 rounded-full text-xs"><i class="fas fa-outdent text-xs"></i> ອອກ</span>'}</td><td class="px-4 py-3 text-right font-medium">${t.quantity}</td><td class="px-4 py-3 text-slate-500">${t.note || '-'}</td></tr>`; }).join('');
+        }
+        
+        function addOrUpdateProduct() { const perm = getUserPermission(currentUser?.role); if (!perm.canEdit) { showToast('ບໍ່ມີສິດເພີ່ມ/ແກ້ໄຂ', true); return; } const id = document.getElementById('productId').value.trim().toUpperCase(); const name = document.getElementById('productName').value.trim(); const unit = document.getElementById('productUnit').value; let price = parseInt(document.getElementById('productPrice').value); if(!id || !name) { showToast('ກະລຸນາປ້ອນຂໍ້ມູນໃຫ້ຄົບ', true); return; } const existing = products.find(p => p.id === id); if(existing) { existing.name = name; existing.unit = unit; existing.price = price; showToast(`ອັບເດດ ${id} ສຳເລັດ`); } else { products.push({ id, name, unit, price, stock: 0, minStock: 10 }); showToast(`ເພີ່ມ ${id} ສຳເລັດ`); } saveProducts(); renderAll(); updateChart(); resetProductForm(); }
+        window.editProduct = function(id) { const p = products.find(p => p.id === id); if(p) { document.getElementById('productId').value = p.id; document.getElementById('productName').value = p.name; document.getElementById('productUnit').value = p.unit; document.getElementById('productPrice').value = p.price; } };
+        window.deleteProduct = function(id) { const perm = getUserPermission(currentUser?.role); if (!perm.canDelete) { showToast('ບໍ່ມີສິດລຶບ', true); return; } if(confirm(`ລຶບສິນຄ້າ ${id} ຖາວອນ?`)) { products = products.filter(p => p.id !== id); saveProducts(); renderAll(); updateChart(); showToast(`ລຶບ ${id} ສຳເລັດ`); } };
+        function recordTransaction() { const perm = getUserPermission(currentUser?.role); if (!perm.canEdit) { showToast('ບໍ່ມີສິດບັນທຶກ', true); return; } const productId = document.getElementById('transProductSelect').value; if(!productId) { showToast('ເລືອກສິນຄ້າ', true); return; } const type = document.querySelector('input[name="transType"]:checked').value; let qty = parseInt(document.getElementById('transQty').value); if(isNaN(qty) || qty <= 0) { showToast('ຈຳນວນບໍ່ຖືກຕ້ອງ', true); return; } const note = document.getElementById('transNote').value; const product = products.find(p => p.id === productId); if(type === 'out' && product.stock < qty && !confirm(`ຄົງເຫຼືອ ${product.stock}, ຕ້ອງການອອກ ${qty}?`)) return; const newTrans = { id: nextTransId++, warehouseId: currentWarehouseId, productId, type, quantity: qty, note, timestamp: Date.now() }; transactions.push(newTrans); if(type === 'in') product.stock += qty; else product.stock -= qty; saveProducts(); saveTransactions(); renderAll(); updateChart(); document.getElementById('transQty').value = 1; document.getElementById('transNote').value = ''; showToast(`${type === 'in' ? 'ເຂົ້າ' : 'ອອກ'} ${qty} ${product.name} ສຳເລັດ`); }
+        function clearAllData() { if(confirm('ລຶບຂໍ້ມູນທັງໝົດຂອງສາງນີ້?')) { products = []; transactions = transactions.filter(t => t.warehouseId !== currentWarehouseId); saveProducts(); saveTransactions(); renderAll(); updateChart(); showToast('ລຶບຂໍ້ມູນສຳເລັດ'); } }
+        function resetProductForm() { document.getElementById('productId').value = ''; document.getElementById('productName').value = ''; document.getElementById('productUnit').value = 'ກໍ້'; document.getElementById('productPrice').value = '0'; }
+        function exportAllData() { const wsData = [["ລະຫັດ", "ຊື່ສິນຄ້າ", "ຫົວໜ່ວຍ", "ລາຄາ", "ຄົງເຫຼືອ", "ມູນຄ່າ"]]; products.forEach(p => wsData.push([p.id, p.name, p.unit, p.price, p.stock, p.stock * p.price])); const ws = XLSX.utils.aoa_to_sheet(wsData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Products'); XLSX.writeFile(wb, `aif_export_${currentWarehouseId}_${new Date().toISOString().slice(0,19)}.xlsx`); showToast('ສົ່ງອອກຂໍ້ມູນສຳເລັດ'); }
+        
+        // ==================== User Management Functions ====================
+        function renderUserTable() { const tbody = document.getElementById('userTableBody'); if (!tbody) return; tbody.innerHTML = users.map(u => { const roleIcon = u.role === 'admin' ? '👑' : (u.role === 'manager' ? '📋' : '👁️'); const roleColor = u.role === 'admin' ? 'bg-amber-100 text-amber-700' : (u.role === 'manager' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'); return `<tr class="border-b"><td class="px-3 py-2 font-mono text-sm">${escapeHtml(u.username)}</td><td class="px-3 py-2">${escapeHtml(u.fullname || '-')}</td><td class="px-3 py-2 text-center"><span class="px-2 py-1 rounded-full text-xs ${roleColor}">${roleIcon} ${u.role === 'admin' ? 'Admin' : (u.role === 'manager' ? 'Manager' : 'Viewer')}</span></td><td class="px-3 py-2 text-center">${u.username !== 'admin' ? `<button onclick="editUser('${u.username}')" class="text-primary-500 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteUser('${u.username}')" class="text-rose-500"><i class="fas fa-trash-alt"></i></button>` : '<span class="text-slate-300 text-xs">ບັນຊີຫຼັກ</span>'}</td></tr>`; }).join(''); }
+        window.editUser = function(username) { const u = users.find(u => u.username === username); if(u) { editingUsername = username; document.getElementById('newUsername').value = u.username; document.getElementById('newFullname').value = u.fullname || ''; document.getElementById('newPassword').value = ''; document.getElementById('newRole').value = u.role; document.getElementById('newUsername').readOnly = true; } };
+        window.deleteUser = function(username) { if(username === 'admin') { showToast('ບໍ່ສາມາດລຶບບັນຊີຫຼັກ', true); return; } if(confirm(`ລຶບຜູ້ໃຊ້ ${username}?`)) { users = users.filter(u => u.username !== username); saveUsers(); renderUserTable(); if(currentUser && currentUser.username === username) logout(); showToast(`ລຶບ ${username} ສຳເລັດ`); } };
+        function saveUser() { const username = document.getElementById('newUsername').value.trim(); const fullname = document.getElementById('newFullname').value.trim(); const password = document.getElementById('newPassword').value; const role = document.getElementById('newRole').value; if(!username) { showToast('ປ້ອນຊື່ຜູ້ໃຊ້', true); return; } if(editingUsername) { const idx = users.findIndex(u => u.username === editingUsername); if(idx !== -1) { users[idx].fullname = fullname; if(password) users[idx].password = password; users[idx].role = role; showToast(`ອັບເດດ ${username} ສຳເລັດ`); } editingUsername = null; document.getElementById('newUsername').readOnly = false; } else { if(users.find(u => u.username === username)) { showToast('ຊື່ນີ້ມີຢູ່ແລ້ວ', true); return; } if(!password) { showToast('ປ້ອນລະຫັດຜ່ານ', true); return; } users.push({ username, password, role, fullname, createdAt: new Date().toISOString() }); showToast(`ເພີ່ມ ${username} ສຳເລັດ`); } saveUsers(); renderUserTable(); resetUserForm(); }
+        function resetUserForm() { document.getElementById('newUsername').value = ''; document.getElementById('newFullname').value = ''; document.getElementById('newPassword').value = ''; document.getElementById('newRole').value = 'viewer'; document.getElementById('newUsername').readOnly = false; editingUsername = null; }
+        
+        // ==================== Login System ====================
+        function checkLogin() { loadUsers(); loadWarehouses(); const saved = localStorage.getItem('aif_current_user'); if(saved) { currentUser = JSON.parse(saved); if(users.find(u => u.username === currentUser.username)) showMainApp(); else showLoginPage(); } else showLoginPage(); }
+        function showLoginPage() { document.getElementById('loginPage').style.display = 'flex'; document.getElementById('mainApp').style.display = 'none'; }
+        function showMainApp() {
+            document.getElementById('loginPage').style.display = 'none'; document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('currentUserDisplay').innerHTML = `${currentUser.fullname || currentUser.username} <span class="text-xs text-purple-500">(${currentUser.role})</span>`;
+            const perm = getUserPermission(currentUser.role);
+            document.getElementById('addProductPanel').style.opacity = perm.canEdit ? '1' : '0.5'; document.getElementById('addProductPanel').style.pointerEvents = perm.canEdit ? 'auto' : 'none';
+            document.getElementById('transactionPanel').style.opacity = perm.canEdit ? '1' : '0.5'; document.getElementById('transactionPanel').style.pointerEvents = perm.canEdit ? 'auto' : 'none';
+            document.getElementById('userManagementBtn').style.display = perm.canManageUsers ? 'inline-flex' : 'none';
+            document.getElementById('warehouseManagementBtn').style.display = perm.canManageWarehouse ? 'inline-flex' : 'none';
+            document.getElementById('clearAllBtn').style.display = perm.canDelete ? 'inline-flex' : 'none';
+            
+            renderWarehouseSelector(); 
+            loadDataFromCloud(); 
+            startAutoBackup(); 
+            setInterval(() => renderTransactionHistory(), 5000);
+        }
+        function logout() { localStorage.removeItem('aif_current_user'); currentUser = null; showLoginPage(); }
+        
+        // ==================== Modal Functions & Helpers ====================
+        function showWarehouseModal() { document.getElementById('warehouseModal').style.display = 'flex'; renderWarehouseManageList(); }
+        function hideWarehouseModal() { document.getElementById('warehouseModal').style.display = 'none'; }
+        function showUserModal() { document.getElementById('userModal').style.display = 'flex'; renderUserTable(); resetUserForm(); }
+        function hideUserModal() { document.getElementById('userModal').style.display = 'none'; }
+        
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+        function showToast(msg, isErr=false) { const t = document.createElement('div'); t.className = 'toast-notify'; t.innerHTML = `<i class="fas ${isErr ? 'fa-exclamation-triangle' : 'fa-check-circle'} mr-2"></i> ${msg}`; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+        
+        // ==================== Event Listeners ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('loginForm').addEventListener('submit', (e) => { e.preventDefault(); const u = document.getElementById('username').value, p = document.getElementById('password').value; const user = users.find(u2 => u2.username === u && u2.password === p); if(user) { currentUser = user; localStorage.setItem('aif_current_user', JSON.stringify(user)); showMainApp(); } else showToast('ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກ', true); });
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('userManagementBtn').addEventListener('click', showUserModal);
+            document.getElementById('warehouseManagementBtn').addEventListener('click', showWarehouseModal);
+            document.getElementById('quickAddWarehouseBtn').addEventListener('click', showWarehouseModal);
+            document.getElementById('closeModalBtn').addEventListener('click', hideUserModal);
+            document.getElementById('closeWarehouseModalBtn').addEventListener('click', hideWarehouseModal);
+            document.getElementById('cancelUserBtn').addEventListener('click', hideUserModal);
+            document.getElementById('saveUserBtn').addEventListener('click', () => { saveUser(); renderUserTable(); });
+            document.getElementById('addWarehouseBtn').addEventListener('click', addWarehouse);
+            document.getElementById('exportAllBtn').addEventListener('click', exportAllData);
+            document.getElementById('addProductBtn').addEventListener('click', addOrUpdateProduct);
+            document.getElementById('resetProductBtn').addEventListener('click', resetProductForm);
+            document.getElementById('doTransBtn').addEventListener('click', recordTransaction);
+            document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+            document.getElementById('applyFilter').addEventListener('click', () => renderTransactionHistory());
+            document.getElementById('resetFilter').addEventListener('click', () => { document.getElementById('filterStart').value = ''; document.getElementById('filterEnd').value = ''; renderTransactionHistory(); });
+            document.getElementById('searchProduct').addEventListener('input', () => renderProductTable());
+            flatpickr("#filterStart", { dateFormat: "Y-m-d" }); flatpickr("#filterEnd", { dateFormat: "Y-m-d" });
+            checkLogin();
+        });
+    </script>
+</body>
+</html>
