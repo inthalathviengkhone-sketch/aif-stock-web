@@ -177,8 +177,8 @@
     </div>
 
     <script>
-        // ==================== ຕັ້ງຄ່າການເຊື່ອມຕໍ່ Google Sheets ====================
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzDmXpy0Uv7GvjWa4klfB9TijApt7JtoXio5Tzwk4ingDw6JVHQsf5gQVvooDk9N4kNzA/exec';
+        // ==================== ຕັ້ງຄ່າການເຊື່ອມຕໍ່ Netlify Database Sync ====================
+        const SCRIPT_URL = '/api/sync';
 
         // ==================== Data Models ====================
         let warehouses = [
@@ -225,7 +225,7 @@
 
         // ==================== Cloud Sync Setup ====================
         async function syncToCloud(sheetName, dataToSync) {
-            if (!SCRIPT_URL.startsWith('http')) return;
+            if (!SCRIPT_URL) return;
             const statusEl = document.getElementById('realtimeStatus');
             if (statusEl) statusEl.innerHTML = '<i class="fas fa-sync fa-spin mr-1 text-primary-500"></i> ກຳລັງຊິ້ງ...';
             try {
@@ -263,7 +263,7 @@
         }
 
         async function loadDataFromCloud() {
-            if (!SCRIPT_URL.startsWith('http')) { loadData(); return; }
+            if (!SCRIPT_URL) { loadData(); return; }
             try {
                 showToast('ກຳລັງດຶງຂໍ້ມູນຫຼ້າສຸດຈາກ Cloud...', false);
                 const response = await fetch(SCRIPT_URL);
